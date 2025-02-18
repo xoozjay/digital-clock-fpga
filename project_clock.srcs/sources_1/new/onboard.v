@@ -72,25 +72,12 @@ module onboard(
     // 模式选择：普通时钟 / 时间设定 / 闹钟模式
     //===========================================================================
     wire [1:0] mode;
-//    assign mode = (Sw_debug_set_hr || Sw_debug_set_min || Sw_debug_set_sec) ? MODE_SET :
-//                  ((Sw_debug_clock_hr || Sw_debug_clock_min || Sw_debug_clock_sec) ? MODE_ALERT : MODE_CLOCK);
-
-    //===========================================================================
-    // 时钟模块与时间同步逻辑
-    //===========================================================================
-    wire [5:0] clock_sec, clock_min, clock_hr;
-    wire [7:0] clock_dps, clock_disable;
-    wire clock_rst_hr, clock_rst_min, clock_rst_sec, clock_enable;
-    wire [7:0] set_disable;
-    
     wire set_hr, set_min, set_sec;
     wire alert_hr, alert_min, alert_sec;
     mode_controller u_mode_ctrl (
-        .clk(clk_module),
         .reset(RESET_ACTIVE),
         .btn_settings(btn_settings),
         .btn_confirm(btn_confirm),
-        .btn_right(btn_right),
         .mode(mode),
         .set_hr(set_hr),
         .set_min(set_min),
@@ -99,6 +86,14 @@ module onboard(
         .alert_min(alert_min),
         .alert_sec(alert_sec)
     );
+
+    //===========================================================================
+    // 时钟模块与时间同步逻辑
+    //===========================================================================
+    wire [5:0] clock_sec, clock_min, clock_hr;
+    wire [7:0] clock_dps, clock_disable;
+    wire clock_rst_hr, clock_rst_min, clock_rst_sec, clock_enable;
+    wire [7:0] set_disable;
 
     func_basic_clock u_mol_clock (
         .clk_80(clk_clock),
@@ -121,9 +116,9 @@ module onboard(
         .display_disable(set_disable),
         .btn_add(btn_right),
         .btn_minus(btn_left),
-        .sw_hr(alert_hr),
-        .sw_min(alert_min),
-        .sw_sec(alert_sec),
+        .sw_hr(set_hr),
+        .sw_min(set_min),
+        .sw_sec(set_sec),
         .clk_rst_hr(clock_rst_hr),
         .clk_rst_min(clock_rst_min),
         .clk_rst_sec(clock_rst_sec),
@@ -146,9 +141,9 @@ module onboard(
         .display_disable(alert_disable),
         .btn_add(btn_right),
         .btn_minus(btn_left),
-        .sw_hr(Sw_debug_clock_hr),
-        .sw_min(Sw_debug_clock_min),
-        .sw_sec(Sw_debug_clock_sec),
+        .sw_hr(alert_hr),
+        .sw_min(alert_min),
+        .sw_sec(alert_sec),
         .src_hr(clock_hr),
         .src_min(clock_min),
         .src_sec(clock_sec),
@@ -179,20 +174,28 @@ module onboard(
     //===========================================================================
     // 12 小时制转换逻辑（带自定义显示标记）
     //===========================================================================
-    reg [5:0] r_hr, hr_12;
-    reg [3:0] w_cus_h, w_cus_l;
-    always @(*) begin
-        if (!Sw_debug_clk_12) begin
-            r_hr    = disp_hr;
-            w_cus_h = CUSTOM_H_DEFAULT;
-            w_cus_l = CUSTOM_L_DEFAULT;
-        end else begin
-            hr_12   = disp_hr % 12;
-            w_cus_l = CUSTOM_L_SET;
-            w_cus_h = CUSTOM_H_SET_OFFSET + ((hr_12 != disp_hr) ? 4'd1 : 4'd0);
-            r_hr    = (hr_12 != 0) ? hr_12 : 6'd12;
-        end
-    end
+//    reg [5:0] r_hr, hr_12;
+//    reg [3:0] w_cus_h;
+    wire[3:0] w_cus_h, w_cus_l;
+    wire[5:0] w_hr;
+    assign w_cus_l = Sw_debug_clk_12 ? ((disp_hr < 12) ? 4'hA : 4'hB) : 4'hF;
+    assign w_hr = Sw_debug_clk_12 ? ((disp_hr == 12 || disp_hr == 0) ? 12
+                                                                     : (w_cus_l[0] ? disp_hr - 12 : disp_hr)) 
+                                  : disp_hr;
+    assign w_cus_h = (mode == MODE_SET) ? 4'hD : (
+                     (mode == MODE_ALERT) ? 4'hC : (4'hF));
+//    always @(*) begin
+//        if (!Sw_debug_clk_12) begin
+//            r_hr    = disp_hr;
+//            w_cus_h = CUSTOM_H_DEFAULT;
+//            w_cus_l = CUSTOM_L_DEFAULT;
+//        end else begin
+//            hr_12   = disp_hr % 12;
+//            w_cus_l = CUSTOM_L_SET;
+//            w_cus_h = CUSTOM_H_SET_OFFSET + ((hr_12 != disp_hr) ? 4'd1 : 4'd0);
+//            r_hr    = (hr_12 != 0) ? hr_12 : 6'd12;
+//        end
+//    end
 
     //===========================================================================
     // 数码管显示模块
@@ -217,7 +220,7 @@ module onboard(
         .SegL(seg_min_l)
     );
     bcd_display u_dis_hr (
-        .Num(r_hr),
+        .Num(w_hr),
         .SegH(seg_hr_h),
         .SegL(seg_hr_l)
     );

@@ -1,12 +1,10 @@
 module mode_controller(
-    input clk,
     input reset,
     input btn_settings,
     input btn_confirm,
-    input btn_right,
     output reg [1:0] mode,
-    output reg set_hr, set_min, set_sec,
-    output reg alert_hr, alert_min, alert_sec
+    output set_hr, set_min, set_sec,
+    output alert_hr, alert_min, alert_sec
 );
     localparam MODE_CLOCK = 0;
     localparam MODE_SET   = 1;
@@ -34,23 +32,11 @@ module mode_controller(
         else
             sel <= (sel == 2) ? 0 : sel + 1;
     end
-
-    // 使能信号生成
-    always @(*) begin
-        {set_hr, set_min, set_sec} = 3'b0;
-        {alert_hr, alert_min, alert_sec} = 3'b0;
-        
-        case(mode)
-            MODE_SET: case(sel)
-                0: set_hr = 1;
-                1: set_min = 1;
-                2: set_sec = 1;
-            endcase
-            MODE_ALERT: case(sel)
-                0: alert_hr = 1;
-                1: alert_min = 1;
-                2: alert_sec = 1;
-            endcase
-        endcase
-    end
+    
+    assign set_hr  = mode == MODE_SET && sel == 0;
+    assign set_min = mode == MODE_SET && sel == 1;
+    assign set_sec = mode == MODE_SET && sel == 2;
+    assign alert_hr  = mode == MODE_ALERT && sel == 0;
+    assign alert_min = mode == MODE_ALERT && sel == 1;
+    assign alert_sec = mode == MODE_ALERT && sel == 2;
 endmodule
