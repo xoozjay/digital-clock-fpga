@@ -34,8 +34,8 @@ module func_basic_clock(
             clk_buf_hr  <= clk_timing_hr;
         end
     end
-    multiplexer_2 m_m(enable, clk_rst_min ^ clk_buf_min, clk_timing_min, clk_min);
-    multiplexer_2 m_h(enable, clk_rst_hr  ^ clk_buf_hr , clk_timing_hr , clk_hr );
+    assign clk_min = enable ? clk_timing_min : clk_rst_min ^ clk_buf_min;
+    assign clk_hr  = enable ? clk_timing_hr  : clk_rst_hr  ^ clk_buf_hr;
 
     frequency_divider div_s(
         .clk_in(clk_80),
