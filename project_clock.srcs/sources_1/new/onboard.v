@@ -3,9 +3,7 @@
 module onboard(
     input clk,
     input BTN_SETTINGS, BTN_LEFT, BTN_RIGHT, BTN_CONFIRM, BTN_CANCEL,
-    input Sw_debug_clk_fast, Sw_debug_clk_12, Sw_debug_time_set,
-    input Sw_debug_set_hr, Sw_debug_set_min, Sw_debug_set_sec,
-    input Sw_debug_clock_hr, Sw_debug_clock_min, Sw_debug_clock_sec,
+    input Sw_debug_clk_fast, Sw_debug_clk_12,
     output CA, CB, CC, CD, CE, CF, CG, DP,
     output [7:0] AN,
     output LED, LED_ALERT_R, LED_ALERT_B
