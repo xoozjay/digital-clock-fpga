@@ -23,3 +23,21 @@ module frequency_divider(
                 clk_out <= 0;
         end
 endmodule
+
+module fast_divider (
+        input clk_in,
+        output reg clk_out
+    );
+    // 10000 div
+    
+    reg [12:0] count;
+    always @(posedge clk_in) begin
+        count <= count + 1;
+        
+        // 2169..7168(13'b1_1100_0000_0000)
+        if(count[12:10] == 3'b111) begin
+            count <= 2169;
+            clk_out = ~clk_out;
+        end
+    end
+endmodule 

@@ -10,11 +10,11 @@ module onboard(
 );
     parameter integer SOURCE_FREQ = 1e8;
     parameter integer
-            DIV_FACTOR_MODULE = 250, // 用于生成 clk_module 的分频系数
-            DIV_FACTOR_TIMING = 250, // 用于生成 clk_timing 的分频系数
-            DIV_FACTOR_SCAN   = 8;   // 用于扫描段选的分频系数（基于 clk_module）
+            DIV_FACTOR_MODULE = 10000, // 用于生成 clk_module 的分频系数，无实际作用，见 fast_divider
+            DIV_FACTOR_TIMING = 100, // 用于生成 clk_timing 的分频系数
+            DIV_FACTOR_SCAN   = 6;   // 用于扫描段选的分频系数（基于 clk_module）
             
-    parameter RESET_ACTIVE = 1;      // 固定值，不要动
+    parameter RESET_ACTIVE = 1;      // 固定值，不要动。低电平有效
 
     localparam MODE_CLOCK = 0;
     localparam MODE_SET   = 1;
@@ -28,26 +28,19 @@ module onboard(
     //===========================================================================
     // 时钟生成与分频
     //===========================================================================
-    wire clk_0, clk_module, clk_timing;
-    
-    clk_wiz_0 u_clk_wiz (
-        .clk_in1(clk),
-        .clk_out1(clk_0)
-    ); // 5 MHz
+    wire clk_module, clk_timing;
 
-    frequency_divider u_div_module (
-        .clk_in(clk_0),
-        .clk_out(clk_module),
-        .reset(RESET_ACTIVE),
-        .div(DIV_FACTOR_MODULE)
-    ); // 20 kHz
+    fast_divider u_div_module (
+        .clk_in(clk),
+        .clk_out(clk_module)
+    ); // 10 kHz
 
     frequency_divider u_div_timing (
         .clk_in(clk_module),
         .clk_out(clk_timing),
         .reset(RESET_ACTIVE),
         .div(DIV_FACTOR_TIMING)
-    ); // 80 Hz
+    ); // 100 Hz
 
     //===========================================================================
     // 按键消抖
@@ -94,7 +87,7 @@ module onboard(
     wire [7:0] set_disable;
 
     func_basic_clock u_mol_clock (
-        .clk_80(clk_clock),
+        .clk_timing(clk_clock),
         .reset(RESET_ACTIVE),
         .enable(clock_enable),
         .display_hr(clock_hr),
@@ -109,7 +102,7 @@ module onboard(
 
     time_sync u_time_sync (
         .clk_mol(clk_module),
-        .clk_80(clk_clock),
+        .clk_timing(clk_clock),
         .enable(mode == MODE_SET),
         .display_disable(set_disable),
         .btn_add(btn_right),
@@ -130,7 +123,7 @@ module onboard(
     wire [7:0] alert_disable;
     alert_clock u_alert (
         .clk_mol(clk_module),
-        .clk_80(clk_clock),
+        .clk_timing(clk_clock),
         .enable(1),
         .setting(mode == MODE_ALERT),
         .display_hr(clock_alert_hr),
@@ -170,10 +163,9 @@ module onboard(
     );
 
     //===========================================================================
-    // 12 小时制转换逻辑（带自定义显示标记）
+    // 12 小时制转换逻辑
+    // 自定义显示标记
     //===========================================================================
-//    reg [5:0] r_hr, hr_12;
-//    reg [3:0] w_cus_h;
     wire[3:0] w_cus_h, w_cus_l;
     wire[5:0] w_hr;
     assign w_cus_l = Sw_debug_clk_12 ? ((disp_hr < 12) ? 4'hA : 4'hB) : 4'hF;
@@ -182,18 +174,6 @@ module onboard(
                                   : disp_hr;
     assign w_cus_h = (mode == MODE_SET) ? 4'hD : (
                      (mode == MODE_ALERT) ? 4'hC : (4'hF));
-//    always @(*) begin
-//        if (!Sw_debug_clk_12) begin
-//            r_hr    = disp_hr;
-//            w_cus_h = CUSTOM_H_DEFAULT;
-//            w_cus_l = CUSTOM_L_DEFAULT;
-//        end else begin
-//            hr_12   = disp_hr % 12;
-//            w_cus_l = CUSTOM_L_SET;
-//            w_cus_h = CUSTOM_H_SET_OFFSET + ((hr_12 != disp_hr) ? 4'd1 : 4'd0);
-//            r_hr    = (hr_12 != 0) ? hr_12 : 6'd12;
-//        end
-//    end
 
     //===========================================================================
     // 数码管显示模块
@@ -230,7 +210,7 @@ module onboard(
         .clk_out(clk_scan),
         .reset(RESET_ACTIVE),
         .div(DIV_FACTOR_SCAN)
-    );  // 例如：1,250 Hz / 8 段
+    );
 
     // 数码管段选多路复用
     wire [7:0] w_dps;

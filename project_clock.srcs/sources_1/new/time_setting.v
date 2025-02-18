@@ -1,6 +1,6 @@
 module time_sync(
         input clk_mol,
-        input clk_80,
+        input clk_timing,
 //        input reset,
         input enable,
 //        output reg [3:0] display_custom_h, display_custom_l,
@@ -11,13 +11,15 @@ module time_sync(
         output clk_rst_hr, clk_rst_min, clk_rst_sec, clk_rst_en
 //        input [5:0] src_hr, src_min, src_sec
     );
+    parameter integer DIV_FACTOR_SECOND = 100;
+    
     assign clk_rst_en = ~enable;
     
     wire clk_disable_blink;
     frequency_divider div_disable(
-        .clk_in(clk_80),
+        .clk_in(clk_timing),
         .reset(enable),
-        .div(20),
+        .div(DIV_FACTOR_SECOND / 2),
         .clk_out(clk_disable_blink)
     );
     always @(clk_disable_blink) begin
@@ -48,7 +50,7 @@ endmodule
 
 module alert_clock (
         input clk_mol,
-        input clk_80,
+        input clk_timing,
         input setting,
         input enable,
 //        output reg [3:0] display_custom_h, display_custom_l,
@@ -67,7 +69,7 @@ module alert_clock (
     wire clk_rst_hr, clk_rst_min, clk_rst_sec;
     time_sync(
         .clk_mol(clk_mol),
-        .clk_80(clk_80),
+        .clk_timing(clk_timing),
         .enable(setting && enable),
         .display_disable(display_disable),
         .btn_add(btn_add), .btn_minus(btn_minus), .sw_hr(sw_hr), .sw_min(sw_min), .sw_sec(sw_sec),
@@ -100,7 +102,7 @@ module alert_clock (
     reg [1:0] led_alert_r = 0;
     assign led_alert = alert_enable ? led_alert_r : 0;
     frequency_divider alert(
-        .clk_in(clk_80),
+        .clk_in(clk_timing),
         .clk_out(clk_alert),
         .reset(alert_enable),
         .div(10)
